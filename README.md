@@ -6,7 +6,7 @@
 
 A lightweight, accurate, and developer-friendly PHP package for converting dates between **Bikram Sambat (BS)** and **Gregorian (AD)**.
 
-Supports both **Laravel** and **plain PHP** applications.
+Works in **plain PHP** and in **Laravel** (auto-discovered service provider + facade).
 
 ---
 
@@ -14,13 +14,16 @@ Supports both **Laravel** and **plain PHP** applications.
 
 - ✅ Convert **BS → AD**
 - ✅ Convert **AD → BS**
-- ✅ Accepts **English** and **Nepali (Devanagari)** numerals
-- ✅ Format dates in English or Nepali
-- ✅ Day of week support
-- ✅ Month name support
-- ✅ Laravel Auto Discovery
-- ✅ Zero external API dependency
-- ✅ Fast and lightweight
+- ✅ Accepts **English** and **Nepali (Devanagari)** numerals as input
+- ✅ Accepts flexible BS input: `"2082-03-24"`, `"२०८२-०३-२४"`, or `"24 Ashadh 2082"` / `"24 असार 2082"`
+- ✅ Format a BS date as full text, in English or Nepali
+- ✅ Month name lookup (English & Devanagari)
+- ✅ Day-of-week name lookup (English & Devanagari)
+- ✅ Day-number formatting (English & Devanagari digits)
+- ✅ `today()` helper — current date converted to BS
+- ✅ Laravel auto-discovery (service provider + `NepaliDate` facade)
+- ✅ Zero external API dependency — pure PHP, fully offline
+- ✅ Input validation with clear exceptions for out-of-range or malformed dates
 - ✅ PHP 8.2+
 
 ---
@@ -28,31 +31,35 @@ Supports both **Laravel** and **plain PHP** applications.
 ## Requirements
 
 - PHP 8.2+
-- Laravel 9, 10, 11, 12, 13 (optional)
+- Laravel 9, 10, 11, 12 (optional — the package works standalone too)
 
 ---
 
 ## Installation
 
-Install via Composer.
+Install via Composer:
 
 ```bash
 composer require sagartimilsina/nepali-date
 ```
 
-Laravel will automatically discover the service provider.
+Laravel will automatically discover the service provider and the `NepaliDate` facade — no manual registration needed.
+
+If you'd like to tweak the config file, publish it with:
+
+```bash
+php artisan vendor:publish --tag=nepali-date-config
+```
 
 ---
 
-# Basic Usage
+## Basic Usage (Laravel)
 
 ```php
 use Sagartimilsina\NepaliDate\Facades\NepaliDate;
 ```
 
----
-
-## BS to AD
+### BS to AD
 
 ```php
 $result = NepaliDate::bsToAd('2083-03-24');
@@ -66,9 +73,7 @@ Output
 2026-07-08
 ```
 
----
-
-## AD to BS
+### AD to BS
 
 ```php
 $result = NepaliDate::adToBs('2026-07-08');
@@ -82,25 +87,10 @@ Output
 2083-03-24
 ```
 
----
-
-# Nepali Number Input
-
-The package accepts Nepali digits.
+### AD to BS — Devanagari output
 
 ```php
-NepaliDate::bsToAd('२०८३-०३-२४');
-```
-
----
-
-# Nepali Output
-
-```php
-NepaliDate::adToBs(
-    '2026-07-08',
-    language: 'np'
-);
+NepaliDate::adToBs('2026-07-08', true);
 ```
 
 Output
@@ -109,12 +99,31 @@ Output
 २०८३-०३-२४
 ```
 
----
+### Nepali number input
 
-# Get Month Name
+The package accepts Devanagari digits directly, no separate conversion needed:
 
 ```php
-NepaliDate::monthName(3);
+NepaliDate::bsToAd('२०८३-०३-२४');
+```
+
+### Month-name style input
+
+`bsToAd()` also understands day/month-name/year text in either language:
+
+```php
+NepaliDate::bsToAd('24 Ashadh 2083');
+NepaliDate::bsToAd('24 असार 2083');
+```
+
+Both return `2026-07-08`.
+
+---
+
+## Month Names
+
+```php
+NepaliDate::getMonth(3);
 ```
 
 Output
@@ -123,10 +132,10 @@ Output
 Ashadh
 ```
 
-Nepali
+Nepali:
 
 ```php
-NepaliDate::monthName(3, 'np');
+NepaliDate::getMonth(3, true);
 ```
 
 Output
@@ -135,12 +144,42 @@ Output
 असार
 ```
 
+`monthName()` is available as an alias with the same signature.
+
 ---
 
-# Get Day Name
+## Day Numbers
 
 ```php
-NepaliDate::dayName('2026-07-08');
+NepaliDate::getDay(15);
+```
+
+Output
+
+```text
+15
+```
+
+Nepali:
+
+```php
+NepaliDate::getDay(15, true);
+```
+
+Output
+
+```text
+१५
+```
+
+---
+
+## Day-of-Week Names
+
+`getDayName()` (and its alias `dayName()`) expects an **AD** date. If you have a BS date, convert it with `bsToAd()` first.
+
+```php
+NepaliDate::getDayName('2026-07-08');
 ```
 
 Output
@@ -149,10 +188,10 @@ Output
 Wednesday
 ```
 
-Nepali
+Nepali:
 
 ```php
-NepaliDate::dayName('2026-07-08', 'np');
+NepaliDate::getDayName('2026-07-08', true);
 ```
 
 Output
@@ -161,15 +200,21 @@ Output
 बुधबार
 ```
 
----
-
-# Format Date
+Combining with a BS date:
 
 ```php
-NepaliDate::format(
-    '2083-03-24',
-    language: 'en'
-);
+$ad = NepaliDate::bsToAd('2083-03-24');
+NepaliDate::getDayName($ad); // Wednesday
+```
+
+---
+
+## Full Formatted Date
+
+`format()` renders a BS date as readable text:
+
+```php
+NepaliDate::format('2083-03-24');
 ```
 
 Output
@@ -178,13 +223,10 @@ Output
 24 Ashadh 2083
 ```
 
-Nepali
+Nepali:
 
 ```php
-NepaliDate::format(
-    '2083-03-24',
-    language: 'np'
-);
+NepaliDate::format('2083-03-24', true);
 ```
 
 Output
@@ -193,9 +235,36 @@ Output
 २४ असार २०८३
 ```
 
+`bsToNepaliText()` is a convenience shortcut equivalent to `format($bsDate, true)`.
+
 ---
 
-# Plain PHP Usage
+## Today, in BS
+
+```php
+NepaliDate::today();       // e.g. "2083-03-24"
+NepaliDate::today(true);   // e.g. "२०८३-०३-२४"
+```
+
+---
+
+## Supported Year Range
+
+```php
+NepaliDate::getSupportedYearRange();
+// [2000, 2100]
+```
+
+| Calendar | Supported Years                                         |
+| -------- | ------------------------------------------------------- |
+| BS       | 2000 – 2100                                             |
+| AD       | 1943 – 2044 (approximate, driven by the BS range above) |
+
+Dates outside this range throw an `InvalidArgumentException`.
+
+---
+
+## Plain PHP Usage (no Laravel required)
 
 ```php
 require 'vendor/autoload.php';
@@ -204,47 +273,77 @@ use Sagartimilsina\NepaliDate\NepaliDate;
 
 $date = new NepaliDate();
 
-echo $date->bsToAd('2083-03-24');
+echo $date->bsToAd('2083-03-24');   // 2026-07-08
+echo $date->adToBs('2026-07-08');   // 2083-03-24
+echo $date->format('2083-03-24');   // 24 Ashadh 2083
+echo $date->getMonth(3, true);      // असार
+echo $date->getDayName('2026-07-08'); // Wednesday
 ```
 
 ---
 
-# Supported Years
+## Full API Reference
 
-| Calendar | Supported Years |
-|-----------|-----------------|
-| BS | 2000 – 2100 |
-| AD | 1943 – 2044 |
+| Method                   | Signature                                            | Description                                                       |
+| ------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------- |
+| `adToBs`                 | `(string $adDate, bool $devanagari = false): string` | Convert AD → BS.                                                  |
+| `bsToAd`                 | `(string $bsDate): string`                           | Convert BS → AD. Accepts numeric, Devanagari, or month-name text. |
+| `bsToNepaliText`         | `(string $bsDate): string`                           | Shortcut for `format($bsDate, true)`.                             |
+| `format`                 | `(string $bsDate, bool $devanagari = false): string` | Full formatted date, e.g. `"24 Ashadh 2083"`.                     |
+| `getMonth` / `monthName` | `(int $month, bool $devanagari = false): string`     | BS month name from its 1–12 index.                                |
+| `getDay`                 | `(int $day, bool $devanagari = false): string`       | Day number formatted in English or Devanagari digits.             |
+| `getDayName` / `dayName` | `(string $adDate, bool $devanagari = false): string` | Weekday name for an **AD** date.                                  |
+| `today`                  | `(bool $devanagari = false): string`                 | Current date converted to BS.                                     |
+| `getSupportedYearRange`  | `(): array`                                          | `[minYear, maxYear]` supported BS years.                          |
+
+All methods are available on the `NepaliDate` facade (Laravel), the plain-PHP `NepaliDate` class, and directly on `NepaliDateManager` if you resolve it from the container yourself.
 
 ---
 
-# Example
+## Error Handling
+
+Invalid input throws `InvalidArgumentException` (or `OutOfRangeException` for missing calendar-table years):
 
 ```php
-use Sagartimilsina\NepaliDate\Facades\NepaliDate;
-
-echo NepaliDate::adToBs('2026-07-08');
-
-echo NepaliDate::bsToAd('2083-03-24');
+try {
+    NepaliDate::bsToAd('not-a-date');
+} catch (\InvalidArgumentException $e) {
+    // "Unable to parse BS date: not-a-date"
+}
 ```
 
 ---
 
-# Testing
+## Example: Full Demo Controller
+
+A working Laravel controller + Blade form that exercises every method in this README is included under [`examples/Laravel`](examples/Laravel) — copy the controller into `app/Http/Controllers`, the view into `resources/views`, and wire up the routes in `examples/Laravel/routes-snippet.php`.
+
+---
+
+## Testing
+
+The package ships with a PHPUnit suite:
 
 ```bash
+composer install
 composer test
 ```
 
-or
+or directly:
 
 ```bash
 vendor/bin/phpunit
 ```
 
+If you don't have Composer/PHPUnit set up yet, `tests/manual_verify.php` runs the same core assertions with zero dependencies:
+
+```bash
+php tests/manual_verify.php
+```
+
 ---
 
-# Contributing
+## Contributing
 
 Contributions are welcome.
 
@@ -256,39 +355,33 @@ Contributions are welcome.
 
 ---
 
-# Roadmap
+## Roadmap
 
 - [x] BS → AD Conversion
 - [x] AD → BS Conversion
 - [x] Nepali Number Support
 - [x] Laravel Integration
-- [ ] Carbon Integration
-- [ ] Date Validation Helpers
-- [ ] Blade Components
-- [ ] Localization Improvements
+- [x] Month / Day-of-week name helpers
+- [x] Full-text date formatting
+- [ ] Carbon integration (`toCarbon()` / `fromCarbon()`)
+- [ ] Blade components (`<x-nepali-date>`)
+- [ ] Nepali date picker JS/Alpine widget
+- [ ] Locale-aware ordinal day formatting
 
 ---
 
-# License
+## License
 
-This package is open-sourced software licensed under the MIT License.
+This package is open-sourced software licensed under the [MIT License](LICENSE).
 
 ---
 
-# Author
+## Author
 
 **Sagar Timilsina**
-
 Laravel & Full Stack Developer
 
-GitHub
-
-https://github.com/timilsinasagar
-
-Packagist
-
-https://packagist.org/packages/sagartimilsina/nepali-date
-
----
+- GitHub: [https://github.com/timilsinasagar](https://github.com/timilsinasagar)
+- Packagist: [https://packagist.org/packages/sagartimilsina/nepali-date](https://packagist.org/packages/sagartimilsina/nepali-date)
 
 If this package helps you, please consider giving it a ⭐ on GitHub.

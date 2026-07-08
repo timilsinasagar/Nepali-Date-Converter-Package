@@ -21,8 +21,10 @@ class NepaliDateServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->publishes([
-            __DIR__.'/../config/nepali-date.php' => config_path('nepali-date.php'),
-        ], 'nepali-date-config');
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/nepali-date.php' => config_path('nepali-date.php'),
+            ], 'nepali-date-config');
+        }
     }
 }

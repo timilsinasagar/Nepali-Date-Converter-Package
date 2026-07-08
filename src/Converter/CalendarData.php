@@ -10,7 +10,6 @@ class CalendarData
     public const AD_REFERENCE_DATE = '1943-04-14';
 
     // Each entry: [year => [days in each of 12 months]]
-    // SOURCE THIS FROM A VERIFIED DATASET — placeholder shown for structure only
     public static array $calendarData = [
 
         2000 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
@@ -115,7 +114,6 @@ class CalendarData
         2099 => [31, 31, 32, 31, 31, 31, 30, 29, 29, 30, 30, 30],
         2100 => [31, 32, 31, 32, 30, 31, 30, 29, 30, 29, 30, 30]
     ];
-
 
     public static function getMonthDays(int $bsYear): array
     {

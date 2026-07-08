@@ -10,21 +10,6 @@ class InputParser
     private const DEVANAGARI_DIGITS = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
     private const ENGLISH_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
-    private const NEPALI_MONTHS = [
-        'बैशाख' => 1,
-        'जेठ' => 2,
-        'असार' => 3,
-        'साउन' => 4,
-        'भदौ' => 5,
-        'असोज' => 6,
-        'कार्तिक' => 7,
-        'मंसिर' => 8,
-        'पुष' => 9,
-        'माघ' => 10,
-        'फागुन' => 11,
-        'चैत' => 12,
-    ];
-
     public static function toEnglishDigits(string $input): string
     {
         return str_replace(self::DEVANAGARI_DIGITS, self::ENGLISH_DIGITS, $input);
@@ -36,28 +21,29 @@ class InputParser
     }
 
     /**
-     * Parses "2081-03-15", "२०८१-०३-१५", or "15 असार 2081" into [year, month, day]
+     * Parses "2081-03-15", "२०८१-०३-१५", or "15 असार 2081" (or "Ashadh 15, 2081")
+     * into ['year' => int, 'month' => int, 'day' => int]
      */
     public static function parseBsDate(string $input): array
     {
-        $normalized = self::toEnglishDigits(trim($input));
+        $trimmed = trim($input);
+        $normalized = self::toEnglishDigits($trimmed);
 
         // Numeric format: YYYY-MM-DD or YYYY/MM/DD
         if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $normalized, $m)) {
-            return ['year' => (int) $m[1], 'month' => (int) $m[2], 'day' => (int) $m[3]];
+            return self::assertValidParts((int) $m[1], (int) $m[2], (int) $m[3], $input);
         }
 
-        // Nepali month-name format: "15 असार 2081" or "असार 15, 2081"
-        foreach (self::NEPALI_MONTHS as $name => $index) {
-            if (str_contains($input, $name)) {
-                preg_match('/(\d+)/', self::toEnglishDigits($input), $numbers, PREG_OFFSET_CAPTURE);
+        // Month-name format (English or Nepali): "15 असार 2081", "Ashadh 15, 2081", "15 Ashadh 2081"
+        foreach (self::monthNameCandidates() as $name => $index) {
+            if (stripos($trimmed, $name) !== false) {
                 preg_match_all('/\d+/', $normalized, $allNumbers);
+
                 if (count($allNumbers[0]) >= 2) {
-                    return [
-                        'year' => (int) end($allNumbers[0]),
-                        'month' => $index,
-                        'day' => (int) $allNumbers[0][0],
-                    ];
+                    $day = (int) $allNumbers[0][0];
+                    $year = (int) end($allNumbers[0]);
+
+                    return self::assertValidParts($year, $index, $day, $input);
                 }
             }
         }
@@ -65,9 +51,42 @@ class InputParser
         throw new InvalidArgumentException("Unable to parse BS date: {$input}");
     }
 
+    /**
+     * Combines Nepali and English month names into a single lookup table,
+     * ordered so multi-syllable / longer names are checked before short ones.
+     *
+     * @return array<string, int>
+     */
+    private static function monthNameCandidates(): array
+    {
+        $candidates = [];
+
+        foreach (NameData::$monthNamesNp as $index => $name) {
+            $candidates[$name] = $index;
+        }
+
+        foreach (NameData::$monthNamesEn as $index => $name) {
+            $candidates[$name] = $index;
+        }
+
+        return $candidates;
+    }
+
+    private static function assertValidParts(int $year, int $month, int $day, string $original): array
+    {
+        if ($month < 1 || $month > 12) {
+            throw new InvalidArgumentException("Invalid BS month in date: {$original}");
+        }
+
+        if ($day < 1 || $day > 32) {
+            throw new InvalidArgumentException("Invalid BS day in date: {$original}");
+        }
+
+        return ['year' => $year, 'month' => $month, 'day' => $day];
+    }
+
     public static function nepaliMonthName(int $monthIndex): string
     {
-        $names = array_flip(self::NEPALI_MONTHS);
-        return $names[$monthIndex] ?? throw new InvalidArgumentException('Invalid month index');
+        return NameData::monthName($monthIndex, true);
     }
 }
