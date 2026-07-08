@@ -1,55 +1,50 @@
 {
-    "name": "sagartimilsina/nepali-date",
-    "description": "A lightweight, accurate PHP package for converting dates between Bikram Sambat (BS) and Gregorian (AD), with English and Devanagari output, for Laravel and plain PHP.",
-    "type": "library",
-    "license": "MIT",
-    "keywords": [
-        "nepali date",
-        "bikram sambat",
-        "bs to ad",
-        "ad to bs",
-        "nepali calendar",
-        "laravel",
-        "php",
-        "date converter",
-        "devanagari"
-    ],
-    "authors": [
-        {
-            "name": "Sagar Timilsina",
-            "homepage": "https://github.com/timilsinasagar"
-        }
-    ],
-    "require": {
-        "php": "^8.2"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10.5 || ^11.0",
-        "illuminate/support": "^9.0 || ^10.0 || ^11.0 || ^12.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Sagartimilsina\\NepaliDate\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Sagartimilsina\\NepaliDate\\Tests\\": "tests/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Sagartimilsina\\NepaliDate\\NepaliDateServiceProvider"
-            ],
-            "aliases": {
-                "NepaliDate": "Sagartimilsina\\NepaliDate\\Facades\\NepaliDate"
-            }
-        }
-    },
-    "scripts": {
-        "test": "phpunit"
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+  "name": "sagartimilsina/nepali-date",
+  "description": "Convert dates between Bikram Sambat (BS) and Gregorian (AD), with English and Nepali (Devanagari) input support, for PHP and Laravel.",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "nepali date",
+    "bikram sambat",
+    "bs to ad",
+    "ad to bs",
+    "nepali calendar"
+  ],
+  "authors": [
+    {
+      "name": "Sagar Timilsina",
+      "email": "timilsinasagar04@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^10.0|^11.0|^12.0|^13.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "orchestra/testbench": "^8.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Sagartimilsina\\NepaliDate\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Sagartimilsina\\NepaliDate\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Sagartimilsina\\NepaliDate\\NepaliDateServiceProvider"
+      ],
+      "aliases": {
+        "NepaliDate": "Sagartimilsina\\NepaliDate\\Facades\\NepaliDate"
+      }
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }
