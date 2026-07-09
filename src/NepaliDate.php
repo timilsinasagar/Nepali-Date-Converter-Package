@@ -3,14 +3,18 @@
 
 namespace Sagartimilsina\NepaliDate;
 
+use Carbon\Carbon;
+use DateTimeInterface;
 use Sagartimilsina\NepaliDate\Converter\BsAdConverter;
+use Sagartimilsina\NepaliDate\ValueObjects\NepaliDateResult;
 
 /**
- * Plain-PHP entry point (no Laravel required).
+ * Plain-PHP entry point (no Laravel service container required).
  *
  * Usage:
  *   $date = new NepaliDate();
- *   echo $date->bsToAd('2083-03-24');
+ *   $result = $date->adToBs('2026-07-08');
+ *   echo $result->formattedEn; // "24 Ashadh 2083"
  */
 class NepaliDate
 {
@@ -21,14 +25,51 @@ class NepaliDate
         $this->manager = new NepaliDateManager(new BsAdConverter());
     }
 
-    public function adToBs(string $adDate, bool $devanagari = false): string
+    public function adToBs(string|DateTimeInterface $adDate): NepaliDateResult
     {
-        return $this->manager->adToBs($adDate, $devanagari);
+        return $this->manager->adToBs($adDate);
     }
 
-    public function bsToAd(string $bsDate): string
+    public function bsToAd(string $bsDate): Carbon
     {
         return $this->manager->bsToAd($bsDate);
+    }
+
+    public function toCarbon(string $bsDate): Carbon
+    {
+        return $this->manager->toCarbon($bsDate);
+    }
+
+    public function todayBS(): NepaliDateResult
+    {
+        return $this->manager->todayBS();
+    }
+
+    public function todayAD(): Carbon
+    {
+        return $this->manager->todayAD();
+    }
+
+    public function nowBS(): NepaliDateResult
+    {
+        return $this->manager->nowBS();
+    }
+
+    public function nowAD(): Carbon
+    {
+        return $this->manager->nowAD();
+    }
+
+    // -- Legacy string-based helpers (v1.x compatibility) --
+
+    public function adToBsString(string $adDate, bool $devanagari = false): string
+    {
+        return $this->manager->adToBsString($adDate, $devanagari);
+    }
+
+    public function bsToAdString(string $bsDate): string
+    {
+        return $this->manager->bsToAdString($bsDate);
     }
 
     public function bsToNepaliText(string $bsDate): string

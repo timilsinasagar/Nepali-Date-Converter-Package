@@ -4,26 +4,26 @@
 [![PHP Version](https://img.shields.io/packagist/php-v/sagartimilsina/nepali-date.svg)](https://packagist.org/packages/sagartimilsina/nepali-date)
 [![License](https://img.shields.io/packagist/l/sagartimilsina/nepali-date.svg)](LICENSE)
 
-A lightweight, accurate, and developer-friendly PHP package for converting dates between **Bikram Sambat (BS)** and **Gregorian (AD)**.
+A production-ready, Carbon-backed PHP package for converting dates between **Bikram Sambat (BS)** and **Gregorian (AD)**.
 
-Works in **plain PHP** and in **Laravel** (auto-discovered service provider + facade).
+Works in **plain PHP** and in **Laravel 10, 11, 12, and 13** (auto-discovered service provider + facade).
+
+> **Upgrading from v1.x?** `adToBs()` and `bsToAd()` now return rich objects instead of plain strings — see [CHANGELOG.md](CHANGELOG.md) for the full breaking-change notes and the `*String()` methods that preserve the old behavior.
 
 ---
 
 ## Features
 
-- ✅ Convert **BS → AD**
-- ✅ Convert **AD → BS**
+- ✅ Convert **AD → BS** and **BS → AD**, returning a full result object (year, month number + name in both languages, day, weekday in both languages, formatted text, and a `Carbon` instance) — not just a string
+- ✅ `todayBS()` / `todayAD()` / `nowBS()` / `nowAD()` helpers
+- ✅ `toCarbon()` — go straight from a BS date string to a `Carbon` instance
 - ✅ Accepts **English** and **Nepali (Devanagari)** numerals as input
 - ✅ Accepts flexible BS input: `"2082-03-24"`, `"२०८२-०३-२४"`, or `"24 Ashadh 2082"` / `"24 असार 2082"`
-- ✅ Format a BS date as full text, in English or Nepali
-- ✅ Month name lookup (English & Devanagari)
-- ✅ Day-of-week name lookup (English & Devanagari)
-- ✅ Day-number formatting (English & Devanagari digits)
-- ✅ `today()` helper — current date converted to BS
+- ✅ Weekday names are **derived live** from the converted date (via Carbon), never hardcoded per-date
 - ✅ Laravel auto-discovery (service provider + `NepaliDate` facade)
-- ✅ Zero external API dependency — pure PHP, fully offline
-- ✅ Input validation with clear exceptions for out-of-range or malformed dates
+- ✅ Strict Form Request validation + Service Layer + Bootstrap 5 demo, bundled and opt-in
+- ✅ Zero external API dependency — pure PHP + Carbon, fully offline
+- ✅ PSR-12 compliant (Laravel Pint), PHPUnit test suite
 - ✅ PHP 8.2+
 
 ---
@@ -31,21 +31,20 @@ Works in **plain PHP** and in **Laravel** (auto-discovered service provider + fa
 ## Requirements
 
 - PHP 8.2+
-- Laravel 9, 10, 11, 12 (optional — the package works standalone too)
+- `nesbot/carbon` ^2.72 || ^3.0 (already a dependency of every Laravel app)
+- Laravel 10, 11, 12, or 13 (optional — the package works standalone too)
 
 ---
 
 ## Installation
 
-Install via Composer:
-
 ```bash
 composer require sagartimilsina/nepali-date
 ```
 
-Laravel will automatically discover the service provider and the `NepaliDate` facade — no manual registration needed.
+Laravel auto-discovers the service provider and the `NepaliDate` facade — no manual registration needed.
 
-If you'd like to tweak the config file, publish it with:
+Publish the config file if you want to tweak defaults:
 
 ```bash
 php artisan vendor:publish --tag=nepali-date-config
@@ -53,214 +52,82 @@ php artisan vendor:publish --tag=nepali-date-config
 
 ---
 
-## Basic Usage (Laravel)
+## Quick Start (Laravel)
 
 ```php
 use Sagartimilsina\NepaliDate\Facades\NepaliDate;
-```
 
-### BS to AD
-
-```php
-$result = NepaliDate::bsToAd('2083-03-24');
-
-echo $result;
-```
-
-Output
-
-```text
-2026-07-08
-```
-
-### AD to BS
-
-```php
 $result = NepaliDate::adToBs('2026-07-08');
 
-echo $result;
+$result->year;          // 2083
+$result->month;         // 3
+$result->day;            // 24
+$result->monthNameEn;    // "Ashadh"
+$result->monthNameNp;    // "असार"
+$result->weekdayEn;      // "Wednesday"
+$result->weekdayNp;      // "बुधबार"
+$result->formattedEn;    // "24 Ashadh 2083"
+$result->formattedNp;    // "२४ असार २०८३"
+$result->toDateString(); // "2083-03-24"
+$result->carbon;         // Carbon instance for 2026-07-08
+(string) $result;        // "24 Ashadh 2083" (same as formattedEn)
 ```
-
-Output
-
-```text
-2083-03-24
-```
-
-### AD to BS — Devanagari output
 
 ```php
-NepaliDate::adToBs('2026-07-08', true);
-```
+$carbon = NepaliDate::bsToAd('2083-03-24');
 
-Output
-
-```text
-२०८३-०३-२४
-```
-
-### Nepali number input
-
-The package accepts Devanagari digits directly, no separate conversion needed:
-
-```php
-NepaliDate::bsToAd('२०८३-०३-२४');
-```
-
-### Month-name style input
-
-`bsToAd()` also understands day/month-name/year text in either language:
-
-```php
-NepaliDate::bsToAd('24 Ashadh 2083');
-NepaliDate::bsToAd('24 असार 2083');
-```
-
-Both return `2026-07-08`.
-
----
-
-## Month Names
-
-```php
-NepaliDate::getMonth(3);
-```
-
-Output
-
-```text
-Ashadh
-```
-
-Nepali:
-
-```php
-NepaliDate::getMonth(3, true);
-```
-
-Output
-
-```text
-असार
-```
-
-`monthName()` is available as an alias with the same signature.
-
----
-
-## Day Numbers
-
-```php
-NepaliDate::getDay(15);
-```
-
-Output
-
-```text
-15
-```
-
-Nepali:
-
-```php
-NepaliDate::getDay(15, true);
-```
-
-Output
-
-```text
-१५
+$carbon->format('Y-m-d');   // "2026-07-08"
+$carbon->diffForHumans();   // any normal Carbon method works
 ```
 
 ---
 
-## Day-of-Week Names
+## API Reference
 
-`getDayName()` (and its alias `dayName()`) expects an **AD** date. If you have a BS date, convert it with `bsToAd()` first.
+### Primary API (v2.0.0)
 
-```php
-NepaliDate::getDayName('2026-07-08');
-```
+| Method | Signature | Returns |
+|---|---|---|
+| `adToBs` | `(string\|DateTimeInterface $adDate)` | `NepaliDateResult` |
+| `bsToAd` | `(string $bsDate)` | `Carbon` |
+| `toCarbon` | `(string $bsDate)` | `Carbon` — alias of `bsToAd()` |
+| `todayBS` | `()` | `NepaliDateResult` for today |
+| `todayAD` | `()` | `Carbon` for today (midnight) |
+| `nowBS` | `()` | `NepaliDateResult` for the current moment |
+| `nowAD` | `()` | `Carbon` for the current moment (includes time) |
+| `getSupportedYearRange` | `()` | `array` — `[minYear, maxYear]` |
 
-Output
+### `NepaliDateResult` properties & methods
 
-```text
-Wednesday
-```
+| Member | Type |
+|---|---|
+| `$year`, `$month`, `$day` | `int` |
+| `$monthNameEn`, `$monthNameNp` | `string` |
+| `$dayEn`, `$dayNp` | `string` (day number, formatted in each script) |
+| `$weekdayEn`, `$weekdayNp` | `string` |
+| `$formattedEn`, `$formattedNp` | `string` — e.g. `"24 Ashadh 2083"` / `"२४ असार २०८३"` |
+| `$carbon` | `Carbon` — the equivalent AD instant |
+| `toDateString()` | `string` — `"2083-03-24"` |
+| `toDevanagariDateString()` | `string` — `"२०८३-०३-२४"` |
+| `toArray()` / `jsonSerialize()` | `array` |
+| `__toString()` | same as `$formattedEn` |
 
-Nepali:
+### Legacy string-based API (v1.x, still supported)
 
-```php
-NepaliDate::getDayName('2026-07-08', true);
-```
+These return plain strings, exactly like v1.x:
 
-Output
+| Method | Signature |
+|---|---|
+| `adToBsString` | `(string $adDate, bool $devanagari = false): string` |
+| `bsToAdString` | `(string $bsDate): string` |
+| `bsToNepaliText` | `(string $bsDate): string` |
+| `format` | `(string $bsDate, bool $devanagari = false): string` |
+| `getMonth` / `monthName` | `(int $month, bool $devanagari = false): string` |
+| `getDay` | `(int $day, bool $devanagari = false): string` |
+| `getDayName` / `dayName` | `(string $adDate, bool $devanagari = false): string` |
+| `today` | `(bool $devanagari = false): string` |
 
-```text
-बुधबार
-```
-
-Combining with a BS date:
-
-```php
-$ad = NepaliDate::bsToAd('2083-03-24');
-NepaliDate::getDayName($ad); // Wednesday
-```
-
----
-
-## Full Formatted Date
-
-`format()` renders a BS date as readable text:
-
-```php
-NepaliDate::format('2083-03-24');
-```
-
-Output
-
-```text
-24 Ashadh 2083
-```
-
-Nepali:
-
-```php
-NepaliDate::format('2083-03-24', true);
-```
-
-Output
-
-```text
-२४ असार २०८३
-```
-
-`bsToNepaliText()` is a convenience shortcut equivalent to `format($bsDate, true)`.
-
----
-
-## Today, in BS
-
-```php
-NepaliDate::today();       // e.g. "2083-03-24"
-NepaliDate::today(true);   // e.g. "२०८३-०३-२४"
-```
-
----
-
-## Supported Year Range
-
-```php
-NepaliDate::getSupportedYearRange();
-// [2000, 2100]
-```
-
-| Calendar | Supported Years                                         |
-| -------- | ------------------------------------------------------- |
-| BS       | 2000 – 2100                                             |
-| AD       | 1943 – 2044 (approximate, driven by the BS range above) |
-
-Dates outside this range throw an `InvalidArgumentException`.
+All methods above are available on the `NepaliDate` facade (Laravel), the plain-PHP `NepaliDate` class, and directly on `NepaliDateManager` if you resolve it from the container yourself.
 
 ---
 
@@ -273,36 +140,43 @@ use Sagartimilsina\NepaliDate\NepaliDate;
 
 $date = new NepaliDate();
 
-echo $date->bsToAd('2083-03-24');   // 2026-07-08
-echo $date->adToBs('2026-07-08');   // 2083-03-24
-echo $date->format('2083-03-24');   // 24 Ashadh 2083
-echo $date->getMonth(3, true);      // असार
-echo $date->getDayName('2026-07-08'); // Wednesday
+$result = $date->adToBs('2026-07-08');
+echo $result->formattedEn;              // "24 Ashadh 2083"
+
+$carbon = $date->bsToAd('2083-03-24');
+echo $carbon->format('Y-m-d');          // "2026-07-08"
+
+echo $date->todayBS()->formattedNp;     // e.g. "२४ असार २०८३"
 ```
 
 ---
 
-## Full API Reference
+## Bundled Demo (Bootstrap 5)
 
-| Method                   | Signature                                            | Description                                                       |
-| ------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------- |
-| `adToBs`                 | `(string $adDate, bool $devanagari = false): string` | Convert AD → BS.                                                  |
-| `bsToAd`                 | `(string $bsDate): string`                           | Convert BS → AD. Accepts numeric, Devanagari, or month-name text. |
-| `bsToNepaliText`         | `(string $bsDate): string`                           | Shortcut for `format($bsDate, true)`.                             |
-| `format`                 | `(string $bsDate, bool $devanagari = false): string` | Full formatted date, e.g. `"24 Ashadh 2083"`.                     |
-| `getMonth` / `monthName` | `(int $month, bool $devanagari = false): string`     | BS month name from its 1–12 index.                                |
-| `getDay`                 | `(int $day, bool $devanagari = false): string`       | Day number formatted in English or Devanagari digits.             |
-| `getDayName` / `dayName` | `(string $adDate, bool $devanagari = false): string` | Weekday name for an **AD** date.                                  |
-| `today`                  | `(bool $devanagari = false): string`                 | Current date converted to BS.                                     |
-| `getSupportedYearRange`  | `(): array`                                          | `[minYear, maxYear]` supported BS years.                          |
+A responsive AD↔BS conversion form ships with the package, built with a Form Request + Service Layer + thin controller (see [ARCHITECTURE.md](ARCHITECTURE.md)). It's **disabled by default** — the package never adds a route to your app without explicit opt-in.
 
-All methods are available on the `NepaliDate` facade (Laravel), the plain-PHP `NepaliDate` class, and directly on `NepaliDateManager` if you resolve it from the container yourself.
+Enable it in `.env`:
+
+```env
+NEPALI_DATE_DEMO_ROUTE=true
+```
+
+or in `config/nepali-date.php` after publishing it:
+
+```php
+'demo_route_enabled' => true,
+'demo_route_path' => '/nepali-date-demo',
+```
+
+Then visit `/nepali-date-demo` (or whatever path you configured).
+
+**Don't leave this enabled in production** — it's meant for local exploration and as a reference implementation to copy from.
 
 ---
 
 ## Error Handling
 
-Invalid input throws `InvalidArgumentException` (or `OutOfRangeException` for missing calendar-table years):
+Invalid input throws `InvalidArgumentException` (or `OutOfRangeException` for years missing from the calendar table):
 
 ```php
 try {
@@ -312,17 +186,24 @@ try {
 }
 ```
 
+`ConvertDateRequest` (used by the bundled demo) validates `direction` and `date_value` *before* any conversion logic runs, so malformed HTTP input never reaches the service layer at all.
+
 ---
 
-## Example: Full Demo Controller
+## Data Accuracy
 
-A working Laravel controller + Blade form that exercises every method in this README is included under [`examples/Laravel`](examples/Laravel) — copy the controller into `app/Http/Controllers`, the view into `resources/views`, and wire up the routes in `examples/Laravel/routes-snippet.php`.
+The BS↔AD day-count table (`src/Converter/CalendarData.php`) has been cross-checked against a third-party BS/AD converter (englishtonepali.com) at 7 independent points spanning BS 2060–2083, including Nepali New Year dates and mid-month dates — all matched exactly, including day-of-week. These checks run as part of the test suite (`test_weekday_is_derived_from_the_converted_date` in `tests/Unit/NepaliDateManagerTest.php`), not as a one-off spot check.
+
+Two things worth knowing:
+
+- **BS 2000–2090 or so** is the range most public converters also cover, which is what made cross-checking possible.
+- **BS 2091–2100** (the tail of the table) hasn't been independently verified the same way — treat conversions in that range with a bit more caution.
+
+If you spot a mismatch anywhere in the table, please open an issue with the specific BS date and a source for the correct AD equivalent.
 
 ---
 
 ## Testing
-
-The package ships with a PHPUnit suite:
 
 ```bash
 composer install
@@ -335,7 +216,7 @@ or directly:
 vendor/bin/phpunit
 ```
 
-If you don't have Composer/PHPUnit set up yet, `tests/manual_verify.php` runs the same core assertions with zero dependencies:
+Zero-dependency verification (no Composer/PHPUnit needed — uses a local Carbon stub for the sandbox-style testing this package was originally verified with):
 
 ```bash
 php tests/manual_verify.php
@@ -343,27 +224,49 @@ php tests/manual_verify.php
 
 ---
 
-## Contributing
+## Code Style
 
-Contributions are welcome.
+PSR-12 via Laravel Pint:
+
+```bash
+composer lint     # check only
+composer format   # auto-fix
+```
+
+---
+
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for a full walkthrough of how a conversion flows through the package, layer by layer, and why it's structured the way it is.
+
+---
+
+## Versioning & Changelog
+
+This package follows [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for the full version history, including the v2.0.0 breaking changes.
+
+---
+
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Commit your changes
-4. Push the branch
-5. Open a Pull Request
+3. Run `composer lint` and `composer test` before committing
+4. Commit your changes
+5. Push the branch
+6. Open a Pull Request
 
 ---
 
 ## Roadmap
 
-- [x] BS → AD Conversion
-- [x] AD → BS Conversion
-- [x] Nepali Number Support
-- [x] Laravel Integration
-- [x] Month / Day-of-week name helpers
+- [x] BS → AD / AD → BS conversion
+- [x] Nepali number support
+- [x] Laravel integration
+- [x] Month / weekday name helpers
 - [x] Full-text date formatting
-- [ ] Carbon integration (`toCarbon()` / `fromCarbon()`)
+- [x] Carbon integration
+- [x] Form Request + Service Layer + Bootstrap 5 demo
 - [ ] Blade components (`<x-nepali-date>`)
 - [ ] Nepali date picker JS/Alpine widget
 - [ ] Locale-aware ordinal day formatting

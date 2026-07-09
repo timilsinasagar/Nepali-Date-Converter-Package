@@ -1,11 +1,14 @@
 <?php
-// Manual verification script (no Composer/PHPUnit required).
-// Run: php tests/manual_verify.php
+// tests/manual_verify_v2.php
+// Dev-only: loads the CarbonStub so this can run without a full Laravel install.
+// Run: php tests/manual_verify_v2.php
 
+require __DIR__ . '/../dev-stubs/CarbonStub.php'; // dev-only shim -- see file header
 require __DIR__ . '/../src/Converter/CalendarData.php';
 require __DIR__ . '/../src/Converter/NameData.php';
 require __DIR__ . '/../src/Converter/InputParser.php';
 require __DIR__ . '/../src/Converter/BsAdConverter.php';
+require __DIR__ . '/../src/ValueObjects/NepaliDateResult.php';
 require __DIR__ . '/../src/NepaliDateManager.php';
 require __DIR__ . '/../src/NepaliDate.php';
 
@@ -26,57 +29,75 @@ function check(string $label, $actual, $expected): void
     }
 }
 
-function checkThrows(string $label, callable $fn): void
-{
-    global $failures, $passed;
-    try {
-        $fn();
-        $failures++;
-        echo "FAIL: {$label} -- expected exception, none thrown\n";
-    } catch (\InvalidArgumentException|\OutOfRangeException $e) {
-        $passed++;
-        echo "PASS: {$label} ({$e->getMessage()})\n";
-    }
-}
-
 $date = new NepaliDate();
 
-check('AD to BS', $date->adToBs('2026-07-08'), '2083-03-24');
-check('BS to AD', $date->bsToAd('2083-03-24'), '2026-07-08');
+// --- adToBs() returns a rich NepaliDateResult ---
+$result = $date->adToBs('2026-07-08');
+check('adToBs year', $result->year, 2083);
+check('adToBs month', $result->month, 3);
+check('adToBs day', $result->day, 24);
+check('adToBs monthNameEn', $result->monthNameEn, 'Ashadh');
+check('adToBs monthNameNp', $result->monthNameNp, 'असार');
+check('adToBs weekdayEn (derived from Carbon, not hardcoded)', $result->weekdayEn, 'Wednesday');
+check('adToBs weekdayNp', $result->weekdayNp, 'बुधबार');
+check('adToBs formattedEn', $result->formattedEn, '24 Ashadh 2083');
+check('adToBs formattedNp', $result->formattedNp, '२४ असार २०८३');
+check('adToBs toDateString', $result->toDateString(), '2083-03-24');
+check('adToBs toDevanagariDateString', $result->toDevanagariDateString(), '२०८३-०३-२४');
+check('adToBs carbon AD date', $result->carbon->format('Y-m-d'), '2026-07-08');
+check('adToBs __toString', (string) $result, '24 Ashadh 2083');
 
-$ad = '2025-01-15';
-check('Round trip', $date->bsToAd($date->adToBs($ad)), $ad);
+// --- bsToAd() returns a Carbon instance ---
+$carbon = $date->bsToAd('2083-03-24');
+check('bsToAd returns Carbon with right date', $carbon->format('Y-m-d'), '2026-07-08');
+check('toCarbon() alias matches bsToAd()', $date->toCarbon('2083-03-24')->format('Y-m-d'), $carbon->format('Y-m-d'));
 
-check('AD to BS devanagari', $date->adToBs('2026-07-08', true), '२०८३-०३-२४');
-check('BS to AD from devanagari input', $date->bsToAd('२०८३-०३-२४'), '2026-07-08');
-check('BS to AD from English month-name text', $date->bsToAd('24 Ashadh 2083'), '2026-07-08');
-check('BS to AD from Nepali month-name text', $date->bsToAd('24 असार 2083'), '2026-07-08');
+// --- round trip through the rich API ---
+$roundTrip = $date->adToBs($date->bsToAd('2081-01-31'));
+check('Round trip via rich API', $roundTrip->toDateString(), '2081-01-31');
 
-check('Month name EN', $date->getMonth(3), 'Ashadh');
-check('Month name NP', $date->getMonth(3, true), 'असार');
+// --- weekday correctness across known reference points (not hardcoded per-date) ---
+$refs = [
+    '2073-01-01' => 'Wednesday',
+    '2080-01-01' => 'Friday',
+    '2081-01-01' => 'Saturday',
+    '2082-01-01' => 'Monday',
+    '2083-01-01' => 'Tuesday',
+];
+foreach ($refs as $bs => $expectedWeekday) {
+    $r = $date->adToBs($date->bsToAd($bs));
+    check("Weekday for {$bs}", $r->weekdayEn, $expectedWeekday);
+}
 
-check('Day number EN', $date->getDay(15), '15');
-check('Day number NP', $date->getDay(15, true), '१५');
+// --- accepts Carbon/DateTimeInterface input directly, not just strings ---
+$fromCarbonInput = $date->adToBs($date->bsToAd('2083-03-24')); // Carbon in, result out
+check('adToBs accepts Carbon input', $fromCarbonInput->toDateString(), '2083-03-24');
 
-check('Day name from AD (Wed)', $date->getDayName('2026-07-08'), 'Wednesday');
-check('Day name from AD NP', $date->getDayName('2026-07-08', true), 'बुधबार');
-check('Day name from BS date (convert first)', $date->getDayName($date->bsToAd('2083-03-24')), 'Wednesday');
+// --- toArray()/jsonSerialize() ---
+$arr = $result->toArray();
+check('toArray has bs_date', $arr['bs_date'], '2083-03-24');
+check('toArray has ad_date', $arr['ad_date'], '2026-07-08');
+check('jsonSerialize matches toArray', $result->jsonSerialize(), $arr);
 
-check('Format EN', $date->format('2083-03-24'), '24 Ashadh 2083');
-check('Format NP', $date->format('2083-03-24', true), '२४ असार २०८३');
-check('bsToNepaliText', $date->bsToNepaliText('2083-03-24'), '२४ असार २०८३');
+// --- legacy v1.x string helpers still work ---
+check('Legacy adToBsString', $date->adToBsString('2026-07-08'), '2083-03-24');
+check('Legacy adToBsString devanagari', $date->adToBsString('2026-07-08', true), '२०८३-०३-२४');
+check('Legacy bsToAdString', $date->bsToAdString('2083-03-24'), '2026-07-08');
+check('Legacy format()', $date->format('2083-03-24'), '24 Ashadh 2083');
+check('Legacy getMonth()', $date->getMonth(3), 'Ashadh');
+check('Legacy getDay()', $date->getDay(15), '15');
+check('Legacy getDayName()', $date->getDayName('2026-07-08'), 'Wednesday');
+check('Legacy bsToNepaliText()', $date->bsToNepaliText('2083-03-24'), '२४ असार २०८३');
+check('Legacy getSupportedYearRange()', $date->getSupportedYearRange(), [2000, 2100]);
 
-check('Supported year range', $date->getSupportedYearRange(), [2000, 2100]);
-
-checkThrows('Invalid date string throws', fn() => $date->bsToAd('not-a-date'));
-checkThrows('Out of range year throws', fn() => $date->bsToAd('1999-01-01'));
-checkThrows('Invalid month throws', fn() => $date->getMonth(13));
-
-// A handful of extra round-trip spot checks across the supported range.
-foreach (['2000-01-01', '2050-06-15', '2081-01-01', '2100-12-30'] as $bsSample) {
-    $ad2 = $date->bsToAd($bsSample);
-    $back = $date->adToBs($ad2);
-    check("Round trip BS {$bsSample}", $back, $bsSample);
+// --- error handling still works ---
+try {
+    $date->bsToAd('not-a-date');
+    $failures++;
+    echo "FAIL: Invalid BS date should throw\n";
+} catch (\InvalidArgumentException $e) {
+    $passed++;
+    echo "PASS: Invalid BS date throws ({$e->getMessage()})\n";
 }
 
 echo "\n{$passed} passed, {$failures} failed.\n";

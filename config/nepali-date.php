@@ -8,10 +8,10 @@ return [
     | Default Output Language
     |--------------------------------------------------------------------------
     |
-    | Controls whether helper methods that accept an optional $devanagari
-    | flag fall back to Devanagari (Nepali) digits/names by default when
-    | you resolve the manager manually. The facade methods still let you
-    | override this per call.
+    | Controls whether legacy string-based helper methods (getMonth(),
+    | getDay(), etc.) fall back to Devanagari digits/names by default.
+    | Every call site can still override this per call via the
+    | $devanagari argument.
     |
     */
     'default_devanagari' => false,
@@ -21,7 +21,7 @@ return [
     | Supported BS Year Range
     |--------------------------------------------------------------------------
     |
-    | Informational only — the actual range is derived from the data in
+    | Informational only -- the actual range is derived from the data in
     | Sagartimilsina\NepaliDate\Converter\CalendarData. Kept here so it is
     | easy to see at a glance without digging into the source.
     |
@@ -38,5 +38,20 @@ return [
     |
     */
     'ad_reference_date' => '1943-04-14',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bundled Demo Route
+    |--------------------------------------------------------------------------
+    |
+    | Disabled by default -- the package never adds a route to your app
+    | without an explicit opt-in. Set to true (or NEPALI_DATE_DEMO_ROUTE=true
+    | in .env) to mount the Bootstrap 5 conversion demo at demo_route_path.
+    | Meant for local exploration only; don't leave this on in production.
+    |
+    */
+    'demo_route_enabled' => env('NEPALI_DATE_DEMO_ROUTE', false),
+
+    'demo_route_path' => env('NEPALI_DATE_DEMO_PATH', '/nepali-date-demo'),
 
 ];

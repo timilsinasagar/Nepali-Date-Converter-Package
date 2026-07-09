@@ -43,7 +43,14 @@ class NameData
         12 => 'चैत',
     ];
 
-    /** @var array<int, string> Index 0 (Sunday) - 6 (Saturday) => English day name */
+    /**
+     * @var array<int, string> Index 0 (Sunday) - 6 (Saturday) => English day name.
+     *
+     * Used only as a fallback for plain-PHP usage without Carbon available.
+     * NepaliDateManager derives the English weekday directly from the
+     * converted date via Carbon's format('l') rather than this table --
+     * weekday names are never hardcoded against a specific BS/AD date.
+     */
     public static array $dayNamesEn = [
         0 => 'Sunday',
         1 => 'Monday',
